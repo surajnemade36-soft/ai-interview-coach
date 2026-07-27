@@ -27,3 +27,5 @@ node_modules
 server/.env
 serviceAccountKey.json
 dist
+.vercel
+.env*

@@ -13,14 +13,16 @@ app.use(cors());
 app.use(express.json());
 
 
+// Test server
 app.get("/", (req, res) => {
-    res.send("Server is running");
+  res.send("Server is running");
 });
 
 
+// Telegram webhook
 app.post("/telegram", async (req, res) => {
+
   try {
-    console.log("🔥 Telegram request received");
 
     const message = req.body.message;
 
@@ -28,86 +30,234 @@ app.post("/telegram", async (req, res) => {
       return res.sendStatus(200);
     }
 
-    const chatId = message.chat.id;
-    const text = message.text;
 
+    const chatId = message.chat.id;
+    const text = message.text || "";
+
+
+    console.log("🔥 Telegram request received");
     console.log("Message:", text);
-    console.log("Token:", process.env.TELEGRAM_TOKEN);
+
+
+    // ================= START =================
 
     if (text === "/start") {
-      await axios.post(
-        `https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`,
-        {
-          chat_id: chatId,
-          text: "👋 Welcome to AI Interview Coach Bot!\n\nType /help to see all commands."
-        }
+
+      await sendTelegram(
+        chatId,
+        "👋 Welcome to AI Interview Coach Bot!\n\nType /help to see commands."
       );
 
-      console.log("/start reply sent");
+      console.log("Start reply sent");
+
     }
+
+
+    // ================= HELP =================
 
     else if (text === "/help") {
-      await axios.post(
-        `https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`,
-        {
-          chat_id: chatId,
-          text:
+
+
+      await sendTelegram(
+        chatId,
 `🤖 AI Interview Coach Bot
 
-Available Commands
-
-/start - Start Bot
-/help - Show Commands
+/start - Start bot
+/help - Show commands
 /addquestion Your Question
-/listquestions
-/deletequestion ID
-/notice Your Message`
-        }
+/notice Your Website Notice`
       );
 
-      console.log("/help reply sent");
+
+      console.log("Help reply sent");
+
     }
-// ---------- /addquestion ----------
-else if (text.startsWith("/addquestion")) {
-  try {
-    const question = text.replace("/addquestion", "").trim();
-    console.log("Inside /addquestion");
 
-    console.log("Question:", question);
-    console.log("Saving to Firestore...");
 
-   await db.collection("questions").doc().set({
-  question: question,
-  createdAt: admin.firestore.FieldValue.serverTimestamp(),
-});
 
-    console.log("Question saved successfully");
+    // ================= NOTICE =================
 
-    await axios.post(
-      `https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`,
-      {
-        chat_id: chatId,
-        text: "✅ Question added successfully!"
+    else if (text.startsWith("/notice")) {
+
+
+      console.log("NOTICE COMMAND");
+
+
+      const notice = text
+        .replace("/notice", "")
+        .trim();
+
+
+
+      if (!notice) {
+
+        await sendTelegram(
+          chatId,
+          "❌ Please enter notice.\n\nExample:\n/notice Interview tomorrow at 10 AM"
+        );
+
+        return res.sendStatus(200);
       }
-    );
 
-  } catch (error) {
-    console.error("ADD QUESTION ERROR:");
-    console.error("ADD QUESTION ERROR:", error.stack);
-  }
-}
+
+
+      console.log("Saving notice:", notice);
+
+
+
+      await db
+        .collection("settings")
+        .doc("website")
+        .set(
+          {
+            notice: notice,
+            interviewEnabled: true
+          },
+          {
+            merge:true
+          }
+        );
+
+
+
+      console.log("Firestore Updated");
+
+
+
+      await sendTelegram(
+        chatId,
+        "✅ Website notice updated successfully!"
+      );
+
+
+      console.log("Notice completed");
+
+    }
+
+
+
+    // ================= ADD QUESTION =================
+
+
+    else if (text.startsWith("/addquestion")) {
+
+
+      const question = text
+        .replace("/addquestion","")
+        .trim();
+
+
+
+      if(!question){
+
+        await sendTelegram(
+          chatId,
+          "❌ Please enter question.\nExample:\n/addquestion Explain Java OOP"
+        );
+
+        return res.sendStatus(200);
+      }
+
+
+
+      await db
+      .collection("questions")
+      .add({
+
+        question: question,
+
+        createdAt:
+        admin.firestore.FieldValue.serverTimestamp()
+
+      });
+
+
+
+      await sendTelegram(
+        chatId,
+        "✅ Question added successfully!"
+      );
+
+
+      console.log("Question saved");
+
+    }
+
+
+
+    // ================= UNKNOWN =================
+
+
+    else {
+
+
+      await sendTelegram(
+        chatId,
+        "❌ Unknown command.\nType /help"
+      );
+
+    }
+
+
+
     res.sendStatus(200);
 
-  } catch (err) {
-    console.error("Telegram Error:");
-    console.error(err.response?.data || err.message);
+
+
+  } catch(error){
+
+
+    console.error("ERROR:");
+    console.error(
+      error.response?.data || error.message
+    );
+
+
     res.sendStatus(500);
+
   }
+
 });
 
 
-const PORT = 5001;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+
+// Telegram send function
+
+async function sendTelegram(chatId,text){
+
+  const response = await axios.post(
+
+    `https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`,
+
+    {
+      chat_id: chatId,
+      text:text
+    }
+
+  );
+
+
+  console.log(
+    "Telegram API:",
+    response.data.ok
+  );
+
+
+}
+
+
+
+
+// Start server
+
+const PORT = process.env.PORT || 5001;
+
+
+app.listen(PORT,()=>{
+
+  console.log(
+    `✅ Server running on port ${PORT}`
+  );
+
 });

@@ -1,13 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase/firebase";
-
+import { useEffect, useState } from "react";
+import { getWebsiteNotice } from "../services/firestore";
 import Navbar from "../components/Navbar";
 import Hero from "../components/Hero";
 
 function Home() {
     const navigate = useNavigate();
-
+     const [notice,setNotice] = useState("");
 
 const handleLogout = async () => {
   try {
@@ -19,6 +20,25 @@ const handleLogout = async () => {
     alert("Logout failed");
   }
 };
+
+useEffect(()=>{
+
+  const unsubscribe = getWebsiteNotice((data)=>{
+
+    if(data){
+
+      setNotice(data.notice);
+
+    }
+
+  });
+
+
+  return ()=>unsubscribe();
+
+},[]);
+
+
   return (
   <div className="relative bg-slate-100 min-h-screen">
 
@@ -29,11 +49,26 @@ const handleLogout = async () => {
     >
                 🚪 Logout
     </button>
+    
 
     <Navbar />
+    {
+ notice && (
+
+  <div className="bg-yellow-400 text-black p-2 rounded-lg text-center">
+
+    📢 {  notice}
+
+  </div>
+
+ )
+}
+
     <Hero />
 
     <div className="max-w-6xl mx-auto px-6 mt-6">
+
+      
       <button
         onClick={() => navigate("/analytics")}
         className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl text-lg font-semibold"
@@ -41,8 +76,9 @@ const handleLogout = async () => {
         📊 Analytics Dashboard
       </button>
     </div>
-
+    
   </div>
+  
 );
 }
 

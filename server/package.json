@@ -1,20 +1,16 @@
 {
   "name": "telegram-bot-server",
   "version": "1.0.0",
-  "description": "Backend server for AI Interview Coach Telegram Bot",
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "node index.js"
+    "start": "node index.js"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.3.3",
     "axios": "^1.18.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "firebase": "^12.16.0",
     "firebase-admin": "^13.10.0"
   }
 }
